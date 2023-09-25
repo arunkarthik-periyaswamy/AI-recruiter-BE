@@ -1,0 +1,43 @@
+version: "3.7"
+services:
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+  app:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    environment:
+      API_VERSION: 2020.1
+      DB_HOST: REDACTED
+      DB_USER: REDACTED
+      DB_PASSWORD: REDACTED
+      DB_DATABASE: webapp
+      FLASK_ENV: development
+      USER: admin
+      PASS: admin
+      QB_CLIENT_ID: Disconnect
+      QB_CLIENT_SECRET: Disconnect
+      QB_ENVIRONMENT: Sandbox
+      QB_REDIRECT_URL: https://na.na.com
+      SERVICE_NAME: local
+      HOSTNAME: localhost
+      AVATAX_ACCOUNT_ID: na
+      AVATAX_LICENSE_KEY: na
+      AVATAX_ENV: sandbox
+      SENDGRID_API_KEY: na
+      AVATAX_COMPANY_ID: na
+      AVATAX_COMPANY_CODE: na
+      REDIS_URL: redis://redis
+      LOG_LEVEL: DEBUG
+      DEBUG_RELOAD: 1
+    ports:
+      - "5000:443"
+      - "5080:80"
+    volumes:
+      - .:/opt/service
+    links:
+      - redis
+    depends_on:
+      - redis

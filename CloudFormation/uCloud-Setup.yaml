@@ -1,0 +1,428 @@
+# Copyright 2019 Amazon.com, Inc. and its affiliates. All Rights Reserved.
+#
+# Licensed under the Amazon Software License (the 'License').
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#   http://aws.amazon.com/asl/
+#
+# or in the 'license' file accompanying this file. This file is distributed
+# on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "uCloud CloudFormation Setup"
+
+Resources:
+
+  #----------------------------------------------------------------------#
+  # EventRule to trigger CreatePipeline lambda
+  #----------------------------------------------------------------------#
+  CreatePipelineRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventRule"
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        detail:
+          event:
+            - referenceDeleted
+            - referenceCreated
+          referenceType:
+            - branch
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt CreatePipeline.Arn
+          Id: CreatePipeline
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreatePipeline
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - CreatePipelineRule
+          - Arn
+
+
+  #----------------------------------------------------------------------#
+  # Role for lambda execution
+  #----------------------------------------------------------------------#
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: uCloudLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
+
+      Policies:
+        - PolicyName: 'uLabCloudCodeStarConnectionsPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: VisualEditor0
+                Effect: Allow
+                Action:
+                  - 'codestar-connections:GetIndividualAccessToken'
+                  - 'codestar-connections:CreateConnection'
+                  - 'codestar-connections:ListInstallationTargets'
+                  - 'codestar-connections:StartOAuthHandshake'
+                  - 'codestar-connections:GetInstallationUrl'
+                  - 'codestar-connections:ListHosts'
+                  - 'codestar-connections:StartAppRegistrationHandshake'
+                  - 'codestar-connections:RegisterAppCode'
+                  - 'codestar-connections:ListConnections'
+                  - 'codestar-connections:CreateHost'
+                Resource: '*'
+              - Sid: VisualEditor1
+                Effect: Allow
+                Action: 'codestar-connections:*'
+                Resource:
+                  - >-
+                    arn:aws:codestar-connections:us-west-1:647890627708:connection/51f2feb5-ae3d-4a72-b6d9-ea394643f5ce
+                  - >-
+                    arn:aws:codestar-connections:us-west-1:647890627708:connection/ea71cd5f-9624-488d-9026-7a7a9d67b959
+
+
+      Path: /
+
+
+  #----------------------------------------------------------------------#
+  # Role for Pipeline Execution
+  #----------------------------------------------------------------------#
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: uCloudCodePipelineRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
+        - arn:aws:iam::aws:policy/AWSCodeCommitFullAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+      Policies:
+        - PolicyName: 'uLabCloudCodeStarConnectionsPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: VisualEditor0
+                Effect: Allow
+                Action:
+                  - 'codestar-connections:GetIndividualAccessToken'
+                  - 'codestar-connections:CreateConnection'
+                  - 'codestar-connections:ListInstallationTargets'
+                  - 'codestar-connections:StartOAuthHandshake'
+                  - 'codestar-connections:GetInstallationUrl'
+                  - 'codestar-connections:ListHosts'
+                  - 'codestar-connections:StartAppRegistrationHandshake'
+                  - 'codestar-connections:RegisterAppCode'
+                  - 'codestar-connections:ListConnections'
+                  - 'codestar-connections:CreateHost'
+                Resource: '*'
+              - Sid: VisualEditor1
+                Effect: Allow
+                Action: 'codestar-connections:*'
+                Resource:
+                  - >-
+                    arn:aws:codestar-connections:us-west-1:647890627708:connection/51f2feb5-ae3d-4a72-b6d9-ea394643f5ce
+                  - >-
+                    arn:aws:codestar-connections:us-west-1:647890627708:connection/ea71cd5f-9624-488d-9026-7a7a9d67b959
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+
+
+
+  #----------------------------------------------------------------------#
+  # Role for CodeBuild Execution
+  #----------------------------------------------------------------------#
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: uCloudCodeBuildRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+
+
+  #----------------------------------------------------------------------#
+  # S3 Bucket to store template
+  #----------------------------------------------------------------------#
+  TemplateBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub ${AWS::AccountId}-templates-ucloud
+
+  TemplateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TemplateBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:*
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${TemplateBucket}
+              - !Sub arn:aws:s3:::${TemplateBucket}/*
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+
+
+
+  #----------------------------------------------------------------------#
+  # Lambda for Stack Creation
+  #----------------------------------------------------------------------#
+  CreatePipeline:
+    DependsOn: LambdaRole
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: uCloudCreatePipeline
+      Handler: "index.lambda_handler"
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "python3.7"
+      Timeout: 25
+      Environment:
+        Variables:
+          GITHUB_SECRET: '{{resolve:ssm:uCloud-ENV-CreatePipeline-GITHUB_SECRET:1}}'
+      Code:
+        ZipFile: |
+          import boto3
+          import hashlib
+          import hmac
+          import json
+          import os
+
+
+          def lambda_handler(event, context):
+              print('CONTEXT= ', context)
+              print(type(event), event)
+              signature = hmac.new(bytes(os.environ['GITHUB_SECRET'], 'utf-8'), bytes(event['body'], 'utf-8'), hashlib.sha1).hexdigest()
+
+              # assuming that the 'payload' variable keeps the content sent by github as plain text
+              # and 'headers' variable keeps the headers sent by GitHub
+              body = json.loads(event['body'])
+              if hmac.compare_digest(signature, event['headers']['x-hub-signature'].split('=')[1]):
+                  #event = json.loads(event)
+
+                  # Region = event['region']
+                  Account = event['requestContext']['accountId']
+                  RepositoryName = body['repository']['name']
+                  print(RepositoryName)
+                  NewBranch = body['ref']
+                  Event = event['headers']['x-github-event']
+                  if NewBranch in ["main", "qa", "dev"]:
+                      quit()
+                  if Event == "create":
+                      pass
+                      cf_client = boto3.client('cloudformation')
+                      cf_client.create_stack(
+                          StackName=f'Pipeline-{RepositoryName}-{NewBranch}',
+                          TemplateURL=f'https://s3.amazonaws.com/{Account}-templates-ucloud/uCloud-Feature-Template.yaml',
+                          Parameters=[
+                              {
+                                  'ParameterKey': 'RepositoryName',
+                                  'ParameterValue': RepositoryName,
+                                  'UsePreviousValue': False
+                              },
+                              {
+                                  'ParameterKey': 'BranchName',
+                                  'ParameterValue': NewBranch,
+                                  'UsePreviousValue': False
+                              }
+                          ],
+                          OnFailure='ROLLBACK',
+                          Capabilities=['CAPABILITY_NAMED_IAM']
+                      )
+                  else:
+                      pass
+                      cf_client = boto3.client('cloudformation')
+                      cf_client.delete_stack(
+                          StackName=f'Pipeline-{RepositoryName}-{NewBranch}'
+                      )
+
+                  return json.dumps({'msg': 'Done!'})
+
+              else:
+                  return json.dumps({'msg': 'not a chance'})
+
+  #----------------------------------------------------------------------#
+  # Lambda function to distribute access tokens to branch envs
+  #----------------------------------------------------------------------#
+  TokenDistService:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: uCloudTokenDistService
+      Handler: "index.lambda_handler"
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.7
+      Timeout: 25
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              print(event, context)
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: d72358c9-2943-4c3a-abd7-4e3c2190233e
+    DependsOn:
+      - ApiGateway
+
+  #----------------------------------------------------------------------#
+  # Api gateway for GitHub webhooks and Access Token Service
+  #----------------------------------------------------------------------#
+  ApiGateway:
+    Type: 'AWS::ApiGatewayV2::Api'
+    Properties:
+      Name: uCloudApiGateway
+      ProtocolType: HTTP
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 821706d6-2040-43ba-b4e3-4a07e69d20e3
+
+  #----------------------------------------------------------------------#
+  # Integration to connect ApiGateway to TokenDistService
+  #----------------------------------------------------------------------#
+  TokenDistServiceApiIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref ApiGateway
+      Description: uCloud api gateway integration for TokenDistributionService
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ''
+        - - 'arn:'
+          - !Ref 'AWS::Partition'
+          - ':apigateway:'
+          - !Ref 'AWS::Region'
+          - ':lambda:path/2015-03-31/functions/'
+          - !GetAtt TokenDistService.Arn
+          - /invocations
+      IntegrationMethod: POST
+      ConnectionType: INTERNET
+      PayloadFormatVersion: 2.0
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 70b4d2ca-eb5b-4502-8693-7ff390ec8519
+
+  #----------------------------------------------------------------------#
+  # Integration to connect ApiGateway to CreatePipeline
+  #----------------------------------------------------------------------#
+  CreatePipelineApiIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref ApiGateway
+      Description: uCloud api gateway integration for CreatePipeline
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ''
+        - - 'arn:'
+          - !Ref 'AWS::Partition'
+          - ':apigateway:'
+          - !Ref 'AWS::Region'
+          - ':lambda:path/2015-03-31/functions/'
+          - !GetAtt CreatePipeline.Arn
+          - /invocations
+      IntegrationMethod: POST
+      ConnectionType: INTERNET
+      PayloadFormatVersion: 2.0
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 70b4d2ca-eb5b-4502-8693-7ff390ec8519
+
+
+  #----------------------------------------------------------------------#
+  # Api route for traffic to TokenDistService
+  #----------------------------------------------------------------------#
+  TokenDistServiceApiRoute:
+    Type: 'AWS::ApiGatewayV2::Route'
+    DependsOn:
+      - TokenDistServiceApiIntegration
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /TokenDistService'
+      AuthorizationType: NONE
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref TokenDistServiceApiIntegration
+
+
+  #----------------------------------------------------------------------#
+  # Api route for traffic to CreatePipeline lambda function
+  #----------------------------------------------------------------------#
+  CreatePipelineApiRoute:
+    Type: 'AWS::ApiGatewayV2::Route'
+    DependsOn:
+      - CreatePipelineApiIntegration
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /CreatePipeline'
+      AuthorizationType: NONE
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref CreatePipelineApiIntegration
+
+  #----------------------------------------------------------------------#
+  # Api gateway stage
+  #----------------------------------------------------------------------#
+  ApiGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      Description: uCloud api gateway stage
+      ApiId: !Ref ApiGateway
+      StageName: '$default'
+      AutoDeploy: true
+
+
+  ApiGatewayDns:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: apigateway.ulabcloud.com
+      DomainNameConfigurations:
+        - EndpointType: REGIONAL
+          CertificateArn: >-
+            arn:aws:acm:us-west-1:647890627708:certificate/75cbc8e1-d8ae-4d95-813f-13e8cb151f9d
+          CertificateName: apigateway cert
+
+
+  ApiGatewayMapping:
+    Type: 'AWS::ApiGatewayV2::ApiMapping'
+    Properties:
+      DomainName: apigateway.ulabcloud.com
+      ApiId: !Ref ApiGateway
+      Stage: !Ref ApiGatewayStage

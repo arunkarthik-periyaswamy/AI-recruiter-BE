@@ -1,0 +1,20 @@
+<html>
+	<body>
+		<h3>Dear {{ customer_name }},</h3>
+		The scheduled payment for your most recent invoice has encountered an issue. We know these things happen sometimes. TO AVOID SERVICE DISRUPTION, Please promptly update your payment method in our customer portal here: <a href='{{ invoice_url['url'] }}'>Click here<a> so we can continue to provide you with great products. Details regarding this invoice are listed below.
+		<br>
+		<br>
+		Invoice Number : {{ invoice_number }} <br>
+		Payment Period: {{ payment_period }} <br>
+        Payment Amount Attempted: {{ payment_amount }} {{ currency_code }} <br>
+        Payment Date: {{ payment_date }} <br>
+        Reason:  {{ reason }}
+        <br>
+		<br>
+		As always, if you have any questions at all, please don’t hesitate to email us at {{ invoice_url['email'] }} or give us a ring at {{ invoice_url['contact'] }}.
+		<br> Make it a uSmile day,
+		<br>
+		<br>
+		-Team uLab
+	</body>
+</html>

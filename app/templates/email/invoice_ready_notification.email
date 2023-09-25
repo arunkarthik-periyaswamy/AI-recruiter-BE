@@ -1,0 +1,15 @@
+<html>
+	<body>
+		<h3>Dear {{ customer_name }},</h3>
+		Thank you for using uLab Systems.  uLab exists to give control back to you so that you can do what is best for your patients. We hope you have enjoyed the smile on your patient's faces as you handed them your branded aligners in significantly less time.
+		<br>
+		<br>
+		<a href='{{ invoice_url }}'>Click here<a> to view your invoice for your records.
+		<br>
+		<br>
+		As always, if you have any questions at all, please don’t hesitate to give us a ring at {{ support_contact }}.
+		<br>
+		<br>
+		-Team uLab
+	</body>
+</html>

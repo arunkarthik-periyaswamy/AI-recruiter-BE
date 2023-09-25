@@ -1,0 +1,5 @@
+# OPENAI_API_KEY = "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"
+# OPENAI_API_KEY = "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"
+# OPENAI_API_KEY = "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"
+API_VERSION = "api/v1"
+RECRUITMENT_ADMIN_EMAIL = 'recruitment_admin@airecruitment.com'

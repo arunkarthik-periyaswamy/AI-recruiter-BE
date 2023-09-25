@@ -1,0 +1,1 @@
+web: gunicorn application:application --log-level=debug --timeout=3600 --workers=3

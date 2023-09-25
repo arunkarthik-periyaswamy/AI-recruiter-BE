@@ -1,0 +1,20 @@
+server {
+    listen              443 ssl;
+    ssl_certificate     /opt/service/certs/cert.pem;
+    ssl_certificate_key /opt/service/certs/key.pem;
+    ssl_protocols       TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    proxy_connect_timeout 3600s;
+    proxy_read_timeout 3600s;
+    client_max_body_size 2G;
+    location / {
+      proxy_pass http://unix:/run/service.sock;
+    }
+}
+server {
+  listen 80;
+  listen [::]:80 default_server;
+  proxy_connect_timeout 3600s;
+  proxy_read_timeout 3600s;
+  # server_name $HOSTNAME;
+}

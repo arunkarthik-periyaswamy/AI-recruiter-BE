@@ -1,0 +1,24 @@
+<html>
+	<body>
+		<h3>Dear {{ customer_name }},</h3>
+		Thank you for your recent payment. We appreciate your business and hope that our products bring smiles to both you and your patients. Details of your recent payment are listed below.
+		<br>
+		<br>
+		Invoice Number : {{ invoice_number }}<br>
+		Payment Period: {{ payment_period }}<br>
+        Payment Amount: {{ payment_amount }} {{ currency_code }}<br>
+        Payment Date: {{ payment_date }}<br>
+        Payment Card: {{ card_number }}<br>
+        Payment Confirmation: Paid<br>
+        <br>
+		<br>
+		<a href='{{ invoice_url }}'>Click here<a> to view your invoice.
+		<br>
+		<br>
+		As always, if you have any questions at all, please don’t hesitate to email us at support@ulabsystems.com or give us a ring at 866-900-8522.
+		Make it a uSmile day,
+		<br>
+		<br>
+		-Team uLab
+	</body>
+</html>
