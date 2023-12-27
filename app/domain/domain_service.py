@@ -21,8 +21,8 @@ def add_domain(domain_req, user_id):
 
         if domain:
             domain_designation = DomainDesignation.query.filter(
-                d_id=domain.d_id, dsg_id=designation.dsg_id
-            )
+                DomainDesignation.d_id == domain.d_id, DomainDesignation.dsg_id == designation.dsg_id
+            ).first()
             if domain_designation:
                 logging.error(f"Domain:{domain_req.name} already Exist")
                 raise Exception('Domain already Exist')
@@ -36,9 +36,10 @@ def add_domain(domain_req, user_id):
         domain_designation = DomainDesignation(dsg_id=designation.dsg_id, d_id=domain.d_id)
         db.session.add(domain_designation)
         db.session.commit()
-        return {"name": domain.name, "id": domain.d_id}
+        return {"name": domain.name, "id": domain.d_id}, 200
     except Exception as e:
-        raise Exception('Domain already exist')
+        db.session.rollback()
+        return {"message": "Unable to create Domain!.", "error": str(e)}, 500
     finally:
         db.session.close()
 
@@ -56,9 +57,13 @@ def get_domain_by_dsg_id(dsg_id):
         if domain_designation:
             domain_ids = [domain.d_id for domain in domain_designation]
             domains = Domain.query.filter(Domain.d_id.in_(domain_ids)).all()
-            return [domain.format() for domain in domains]
+            domains = [domain.format() for domain in domains]
         else:
-            return None
+            domains = []
+        return {
+            "count": len(domains),
+            "domains": domains
+        }
     except Exception as e:
         raise e
     finally:
@@ -74,3 +79,35 @@ def get_domain_by_domain_id(domain_id):
     finally:
         db.session.close()
 
+
+def get_domain_by_domain_names(domain_names):
+    try:
+        domain = Domain.query.filter(Domain.name.in_(domain_names)).all()
+        return domain
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+
+
+def create_and_map_domains_to_designation(dsg_id, existing_domains, domains_to_be_created):
+    try:
+        for domain in domains_to_be_created:
+            domain = Domain(name=domain.title())
+            db.session.add(domain)
+            db.session.flush()
+            db.session.refresh(domain)
+            existing_domains[domain.name] = domain.d_id
+        print("Successfully created domains!.")
+
+        for domain_id in existing_domains.values():
+            domain_designation = DomainDesignation(dsg_id=dsg_id, d_id=domain_id)
+            db.session.add(domain_designation)
+            db.session.flush()
+        db.session.commit()
+        print("Mapped the domains with designation!.")
+    except Exception as e:
+        db.session.rollback()
+        raise e
+    finally:
+        db.session.close()

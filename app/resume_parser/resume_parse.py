@@ -75,7 +75,7 @@ def first_questions(context, given_role, given_domain):
             }
         return final
     except Exception as e:
-        return f"Error occured -- {e}"
+        raise e
 
 
 def next_questions(context, given_role, given_domain):
@@ -135,7 +135,7 @@ def next_questions(context, given_role, given_domain):
         }
         return final_2
     except Exception as e:
-        return f"Error occured -- {e}"
+        raise e
 
 
 def doc_parser(documents, given_role, given_domain):
@@ -145,16 +145,22 @@ def doc_parser(documents, given_role, given_domain):
             context = context + docs.page_content + "\n"
         context = context.strip()
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = [
-                executor.submit(first_questions, context, given_role, given_domain),
-                executor.submit(next_questions, context, given_role, given_domain),
-            ]
-        responses = [future.result() for future in futures]
-        response_object = {}
-        for response in responses:
-            response_object.update(response)
-        return response_object
+        # Commenting to utilize in future
+        # with ThreadPoolExecutor(max_workers=4) as executor:
+        #     futures = [
+        #         executor.submit(first_questions, context, given_role, given_domain),
+        #         executor.submit(next_questions, context, given_role, given_domain),
+        #     ]
+        # responses = [future.result() for future in futures]
+        # response_object = {}
+        # for response in responses:
+        #     response_object.update(response)
+        # return response_object
+
+        response = first_questions(context, given_role, given_domain)
+        response2 = next_questions(context, given_role, given_domain)
+        response.update(response2)
+        return response
     except Exception as e:
-        return f"Error occured -- {e}"
+        raise e
 

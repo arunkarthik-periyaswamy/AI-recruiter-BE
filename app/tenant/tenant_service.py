@@ -1,12 +1,11 @@
 import uuid
 
-from flask import jsonify
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
 from app import db, logger
 from app.commons.custom_error import CustomError
-from app.roles.constant import ROLE_ADMIN
+from app.commons.db_constant import ROLE_ADMIN
 from app.tenant.tenant_model import Tenant, TenantUser
 from app.user.model import User
 
@@ -30,7 +29,7 @@ def create_tenant(tenant_req):
         if "23505" == ee.orig.pgcode:
             return {'message': 'Tenant already exists {}'.format(tenant_name)}, 400
     except CustomError as ce:
-        return {"message": 'Failed', "error": ce.msg}, ce.status_code
+        return {"message": ce.msg, "error": "Failed"}, ce.status_code
     except Exception as e:
         logger.info('Error occurred while creating tenant={}'.format(e))
         return {'message': 'error occurred while creating tenant', 'Error': str(e)}, 500
@@ -124,3 +123,26 @@ def create_admin_user_for_tenant(first_name, last_name, email, password, tenant)
     except Exception as e:
         raise e
 
+
+def fetch_tenant_by_id(tenant_id):
+    try:
+        if not tenant_id:
+            raise CustomError("Tenant-id is empty", 400)
+        tenant = Tenant.query.filter(Tenant.tenant_id == tenant_id).first()
+        if not tenant:
+            raise CustomError("Tenant does not exist for the given id", 400)
+        return tenant
+    except CustomError as ce:
+        raise ce
+    except Exception as e:
+        raise e
+
+
+def verify_user_and_tenant(user_id, tenant_id):
+    try:
+        return TenantUser.query.filter(TenantUser.user_id == user_id,
+                                       TenantUser.tenant_id == tenant_id).first() is not None
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()

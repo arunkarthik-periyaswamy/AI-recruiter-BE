@@ -1,0 +1,4 @@
+question,question_type,answer_type,max_answering_time,preparation_time,code_required,difficulty_index,clues,url
+what is decorator in python?,OpenEnded,NoCodeAnswer,5,30,FALSE,4,@route on a line before a function,https://react.dev/
+What is the difference between continue and pass in Python?,OpenEnded,CodeBased,5,30,False,6,Explain from an context of for loop,https://react.dev/
+numbers = [1,2,3,4,5,6,7,8,9,10] print just even numbers using array/list slicing?,Closed,CodeBased,5,30,TRUE,6,[start:stop:step],https://react.dev/

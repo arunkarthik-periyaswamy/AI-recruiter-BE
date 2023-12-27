@@ -18,9 +18,10 @@ class Interview(Base):
     date_of_interview = Column(DateTime)
     eval_status_code = Column(Integer)
     created_by = Column(Integer)
+    tenant_id = Column(UUID)
 
     def __init__(self, i_id=None, c_id=None, dsg_id=None, no_of_questions=None, status=None, evaluation_status=None,
-                 date_of_interview=None, created_by=None):
+                 date_of_interview=None, created_by=None, tenant_id=None):
         self.i_id = i_id,
         self.c_id = c_id,
         self.dsg_id = dsg_id,
@@ -28,7 +29,8 @@ class Interview(Base):
         self.status = status,
         self.evaluation_status = evaluation_status,
         self.date_of_interview = date_of_interview,
-        self.created_by = created_by
+        self.created_by = created_by,
+        self.tenant_id = tenant_id
 
     def __repr__(self):
         return self
@@ -45,7 +47,8 @@ class Interview(Base):
             'status': self.status,
             'evaluation_status': self.evaluation_status,
             'date_of_interview': self.date_of_interview,
-            'created_by': self.created_by
+            'created_by': self.created_by,
+            'tenant_id': self.tenant_id
         }
 
     def toJSON(self):

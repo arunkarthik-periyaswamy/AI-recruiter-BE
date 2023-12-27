@@ -133,8 +133,20 @@ def create_app(config_class='config.ProductionConfig'):
     from app.sub_domain.route import sub_domain_blueprint
     app.register_blueprint(sub_domain_blueprint, url_prefix="/{}/sub-domain".format(config.API_VERSION))
 
+    from app.page_component.route import page_component_blueprint
+    app.register_blueprint(page_component_blueprint, url_prefix="/{}/page-component".format(config.API_VERSION))
+
     from app.resume_parser.route import resume_parser_blueprint
     app.register_blueprint(resume_parser_blueprint, url_prefix="/{}/resume-parser".format(config.API_VERSION))
+
+    from app.analytics.route import analytics_blueprint
+    app.register_blueprint(analytics_blueprint, url_prefix="/{}/analytics".format(config.API_VERSION))
+
+    from app.socratic.route import socratic_blueprint
+    app.register_blueprint(socratic_blueprint, url_prefix="/{}/socratic".format(config.API_VERSION))
+
+    from app.structure.route import structure_blueprint
+    app.register_blueprint(structure_blueprint, url_prefix="/{}/structure".format(config.API_VERSION))
 
     @app.route('/')
     @public_endpoint

@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy import or_
 from werkzeug.security import generate_password_hash
 
 from app import db
@@ -8,8 +9,6 @@ from app.commons.custom_error import CustomError
 from app.designation.designation import Designation
 from app.designation.designation_service import get_designation_by_dsg_id
 from app.evaluation.service import get_interviewed_candidate_evaluations, get_interviews_scheduled_by_user
-from app.interview.interview import  Interview
-from app import db
 
 
 def add_candidate_domains(c_id, domains):
@@ -84,13 +83,15 @@ def get_candidate_table_data(c_id):
         db.session.close()
 
 
-def get_candidate_by_email(email_id):
-    candidate = Candidate.query.filter(
-        db.and_(Candidate.email == email_id)).first()
+def get_candidate_by_email_or_phone(email_id, phone_number, tenant_id):
+    candidate = Candidate.query.filter((or_(Candidate.email == email_id,
+                                            Candidate.phone_number == phone_number)),
+                                       Candidate.tenant_id == tenant_id).first()
     return candidate
 
 
-def create_candidate_with_email(email, designation_name, years_of_experience, phone_number, name, expected_ctc):
+def create_candidate_with_email(email, designation_name, years_of_experience, phone_number,
+                                name, expected_ctc, tenant_id):
     designation = Designation.query.filter(
         db.and_(Designation.name == designation_name)).first()
     if not designation:
@@ -102,15 +103,16 @@ def create_candidate_with_email(email, designation_name, years_of_experience, ph
         years_of_experience=years_of_experience,
         phone_number=phone_number,
         c_name=name,
-        expected_ctc=expected_ctc
+        expected_ctc=expected_ctc,
+        tenant_id=tenant_id
     )
     db.session.add(candidate)
     db.session.flush()
     return candidate
 
 
-def get_candidate_details(user_id):
-    all_candidates_from_interview = get_interviews_scheduled_by_user(user_id)
+def get_candidate_details(tenant_id):
+    all_candidates_from_interview = get_interviews_scheduled_by_user(tenant_id)
     interviewed_candidate = []
     for interview in all_candidates_from_interview:
         candidate_detail = get_candidate_by_id(interview['c_id'])
@@ -132,13 +134,29 @@ def get_candidate_details(user_id):
         interviewed_candidate.append(interview)
     return interviewed_candidate
 
-# Commented for later implementation
-# def delete_candidate(c_id):
-#       interiew_ids = Interview.query.filter(Interview.c_id == c_id).first()
-#       return interiew_ids
+
+def get_candidates_for_tenant(tenant_id, dsg_id=None):
+    try:
+        where = [Candidate.tenant_id == tenant_id]
+        if dsg_id:
+            where.append(Candidate.dsg_id == dsg_id)
+        return Candidate.query.filter(*where).all()
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
 
 
-
-
-
-
+def fetch_candidate_by_id(c_id, tenant_id):
+    try:
+        candidate = Candidate.query.filter(Candidate.c_id == c_id,
+                                           Candidate.tenant_id == tenant_id).first()
+        if not candidate:
+            raise CustomError("Candidate does not exist for the given id", 400)
+        return candidate
+    except CustomError as ce:
+        raise ce
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()

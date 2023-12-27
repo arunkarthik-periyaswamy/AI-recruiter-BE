@@ -28,3 +28,8 @@ class QuestionGenerateDTO(Schema):
     sub_domain = fields.String(required=True)
     difficulty = fields.Integer(required=True)
     code_based = fields.Boolean(required=True)
+
+
+class AnswerGenerateDTO(Schema):
+    question = fields.String(required=True)
+    designation = fields.String(required=True)

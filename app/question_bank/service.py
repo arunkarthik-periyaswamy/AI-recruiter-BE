@@ -16,7 +16,7 @@ from app.designation.designation_service import get_designation_by_dsg_id, desig
 from app.domain.domain_service import get_domain_by_domain_id
 from app.evaluation.service import get_questions_attended_by_candidate, get_questions_un_attended_by_candidate
 from app.interview.interview_service import validate_csv_row
-from app.question_bank.ai_generate_qa import generate_qa_from_ai
+from app.question_bank.ai_generate_qa import generate_qa_from_ai, generate_answer_from_ai
 from app.question_bank.model import Question
 from app.sub_domain.service import validate_sub_domain
 from app.user import user_service
@@ -35,8 +35,8 @@ def check_designation_exist(designation):
         raise CustomError('Designation not found', 404)
 
 
-def check_question_exists(question):
-    if Question.query.filter(Question.question == question).first() is not None:
+def check_question_exists(question, tenant_id=None):
+    if Question.query.filter(Question.question == question, Question.tenant_id == tenant_id).first() is not None:
         raise CustomError('Question already exists', 403)
     return False
 
@@ -74,7 +74,7 @@ def add_question(questionReq, tenant_id=None):
         check_user_exist(questionReq.user_id)
         check_designation_exist(questionReq.designation)
 
-        check_question_exists(questionReq.question)
+        check_question_exists(questionReq.question, tenant_id)
 
         question = questionReq.question
         question_type = questionReq.question_type
@@ -247,16 +247,16 @@ def add_questions_from_file(file_path, designation, user_id, tenant_id):
         db.session.close()
 
 
-def get_question_added_by_user(user_id, designation):
+def get_question_added_under_tenant(tenant_id, designation):
     try:
-        questions = Question.query.filter(db.and_(Question.user_id == user_id, Question.designation == designation)).all()
+        questions = Question.query.filter(db.and_(Question.tenant_id == tenant_id, Question.designation == designation)).all()
         result = []
         if questions:
             for question in questions:
                 result.append(question.question_id)
             return result
         else:
-            raise CustomError('No questions added by the user {}'.format(user_id), 403)
+            raise CustomError('No questions added for this designation.', 403)
     except Exception as ex:
         raise ex
 
@@ -290,28 +290,24 @@ def get_question_list_for_designation(request, tenant_id):
         if tenant_id:
             where.append(Question.tenant_id == tenant_id)
         questions = Question.query.filter(*where).all()
-        if questions:
-            result = [{
-                "answer_type": question.answer_type,
-                "code_required": question.code_required,
-                "designation": question.designation,
-                "difficulty_index": question.difficulty_index,
-                "domain": question.domain,
-                "max_answering_time": question.max_answering_time,
-                "preparation_time": question.preparation_time,
-                "question": question.question,
-                "question_id": question.question_id,
-                "question_type": question.question_type,
-                "sub_domain": question.sub_domain,
-                "url": question.url,
-                "user_id": question.user_id
-            } for question in questions]
-            response_body = {"count": len(result),
-                             "questions": result}
-            logging.info(f"Fetched {len(result)} questions for the designation {designation}")
-            return response_body
-        else:
-            raise CustomError('No questions found for given designation!', 404)
+        result = [{
+            "answer_type": question.answer_type,
+            "code_required": question.code_required,
+            "designation": question.designation,
+            "difficulty_index": question.difficulty_index,
+            "domain": question.domain,
+            "max_answering_time": question.max_answering_time,
+            "preparation_time": question.preparation_time,
+            "question": question.question,
+            "question_id": question.question_id,
+            "question_type": question.question_type,
+            "sub_domain": question.sub_domain,
+            "url": question.url,
+            "user_id": question.user_id
+        } for question in questions]
+        logging.info(f"Fetched {len(result)} questions for the designation {designation}")
+        return {"count": len(result),
+                "questions": result}
     except CustomError as e:
         logging.error(e)
         return {"message": 'Failed', "error": e.msg}, e.status_code
@@ -359,6 +355,54 @@ def get_question_count_for_designations(designations, tenant_id):
             Question.designation, db.func.count(Question.question_id)).filter(
             Question.designation.in_(designations), Question.tenant_id == tenant_id).group_by(
             Question.designation).all()
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+
+
+def generate_answer_for_ques(req_data):
+    try:
+        logging.info("Generating question and answer")
+        openai.api_key = get_open_ai_key()
+        return generate_answer_from_ai(req_data)
+    except openai.error.RateLimitError as e:
+        print(f"Rate limit exceeded....: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.RATE_LIMIT_ERROR.value)
+    except openai.error.APIError as e:
+        print(f"API error occurred....: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.API_ERROR.value)
+    except openai.error.APIConnectionError as e:
+        print(f"Connection error occurred: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.API_CONNECTION_ERROR.value)
+    except openai.error.ServiceUnavailableError as e:
+        print(f"ServiceUnavailable error occurred: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.SERVICE_UNAVAILABLE_ERROR.value)
+    except openai.error.InvalidRequestError as e:
+        print(f"InvalidRequestError error occurred: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.INVALID_REQUEST_ERROR.value)
+    except openai.error.Timeout as e:
+        print(f"Timeout error occurred: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.TIME_OUT_ERROR.value)
+    except CustomError as e:
+        print(f"Evaluation error occurred: {e.msg}")
+        raise CustomError(e, EVAL_STATUS_CODE.EVALUATION_ERROR.value)
+    except Exception as e:
+        print(f"Evaluation error occurred: {e}")
+        raise CustomError(e, EVAL_STATUS_CODE.EVALUATION_ERROR.value)
+
+
+def get_questions_for_tenant(tenant_id, dsg_id=None):
+    try:
+        where = [Question.tenant_id == tenant_id]
+        if dsg_id:
+            designation = get_designation_by_dsg_id(dsg_id)
+            if not designation:
+                raise CustomError("Invalid designation", 400)
+            where.append(Question.designation == designation.name)
+        return Question.query.filter(*where).all()
+    except CustomError as ce:
+        raise ce
     except Exception as e:
         raise e
     finally:

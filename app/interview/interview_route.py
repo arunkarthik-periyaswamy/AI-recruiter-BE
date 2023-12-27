@@ -21,10 +21,10 @@ def create_candidate_schedule_interview():
     if request.method == 'POST':
         request_data = request.form.to_dict()
         user_id, tenant_id = get_user_and_tenant_from_token(request)
-        email_id = request_data['email']
-        designation = request_data['designation']
-        phone_number = request_data['phone_number']
-        name = request_data['name']
+        email_id = request_data.get('email')
+        designation = request_data.get('designation')
+        phone_number = request_data.get('phone_number')
+        name = request_data.get('name')
 
         if not email_id:
             return make_response('Email Id is required', 403)
@@ -39,7 +39,7 @@ def create_candidate_schedule_interview():
             return make_response('name is required', 403)
 
         return interview_service.start_interview_for_candidate(designation, email_id, 1,
-                                                               phone_number, name, 3, user_id)
+                                                               phone_number, name, 3, user_id, tenant_id)
 
 
 @interview_blueprint.route("/<i_id>/info", methods=['GET'])

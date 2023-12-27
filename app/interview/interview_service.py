@@ -31,15 +31,17 @@ def update_interview_with_no_of_questions(interview, no_of_questions):
 
 
 def start_interview_for_candidate(designation, email_id, years_of_experience, phone_number, name,
-                                  expected_ctc, user_id):
+                                  expected_ctc, user_id, tenant_id):
     try:
         db.session.begin()
-        candidate_id, interview = validate_candidate_and_create_interview(email_id, designation, years_of_experience, phone_number, name,
-                                                                          expected_ctc, user_id)
-        questions = question_bank_service.get_question_added_by_user(user_id, designation)
+        candidate_id, interview = validate_candidate_and_create_interview(email_id, designation, years_of_experience,
+                                                                          phone_number, name, expected_ctc, user_id,
+                                                                          tenant_id)
+        questions = question_bank_service.get_question_added_under_tenant(tenant_id, designation)
         no_of_questions = len(questions)
         for question_no in range(no_of_questions):
-            evaluation_service.add_evaluation_from_params(candidate_id, questions[question_no], interview, question_no+1)
+            evaluation_service.add_evaluation_from_params(candidate_id, questions[question_no], interview,
+                                                          question_no+1, tenant_id)
 
         if no_of_questions == 0:
             raise CustomError('questions should not be empty question bank file', 403)
@@ -55,32 +57,33 @@ def start_interview_for_candidate(designation, email_id, years_of_experience, ph
     except Exception as e:
         print(e)
         db.session.rollback()
-        return {"message": 'Failed', "error": str(e)}
+        return {"message": 'Failed', "error": str(e)}, 500
     finally:
         db.session.close()
 
 
-def create_interview_for_candidate(candidate, user_id):
-    interview = Interview(i_id=uuid.uuid1(), c_id=candidate.c_id, dsg_id=candidate.dsg_id, status=INTERVIEW_STATUS.PENDING.name,
-                          evaluation_status=EVALUATION_STATUS.NOT_STARTED.name, date_of_interview=datetime.now(timezone.utc),
-                          created_by=user_id)
+def create_interview_for_candidate(candidate, user_id, tenant_id):
+    interview = Interview(i_id=uuid.uuid1(), c_id=candidate.c_id, dsg_id=candidate.dsg_id,
+                          status=INTERVIEW_STATUS.PENDING.name, evaluation_status=EVALUATION_STATUS.NOT_STARTED.name,
+                          date_of_interview=datetime.now(timezone.utc), created_by=user_id, tenant_id=tenant_id)
     db.session.add(interview)
     db.session.flush()
     return interview
 
 
-def validate_candidate_and_create_interview(email_id, designation, years_of_experience, phone_number, name, expected_ctc, user_id):
-    candidate = candidate_service.get_candidate_by_email(email_id)
+def validate_candidate_and_create_interview(email_id, designation, years_of_experience, phone_number, name,
+                                            expected_ctc, user_id, tenant_id):
+    candidate = candidate_service.get_candidate_by_email_or_phone(email_id, phone_number, tenant_id)
     if not candidate:
-        candidate = candidate_service.create_candidate_with_email(email_id, designation, years_of_experience, phone_number, name,
-                                                expected_ctc)
+        candidate = candidate_service.create_candidate_with_email(email_id, designation, years_of_experience,
+                                                                  phone_number, name, expected_ctc, tenant_id)
     elif candidate:
         # candidate_interview = get_interview_for_candidate(candidate)
         # if candidate_interview:
         #     if not candidate_interview.status == INTERVIEW_STATUS.COMPLETED.name:
         #         raise CustomError('Candidate Interview is not Completed', 403)
         raise CustomError('Candidate Already Exist', 403)
-    interview = create_interview_for_candidate(candidate, user_id)
+    interview = create_interview_for_candidate(candidate, user_id, tenant_id)
 
     return candidate.c_id, interview
 
@@ -138,5 +141,17 @@ def update_interview_status(i_id, interview_status):
             db.session.commit()
             return
         raise FileNotFoundError("Interview: `{}` does not exist".format(i_id))
+    finally:
+        db.session.close()
+
+
+def get_interview_for_tenant(tenant_id, dsg_id=None):
+    try:
+        where = [Interview.tenant_id == tenant_id]
+        if dsg_id:
+            where.append(Interview.dsg_id == dsg_id)
+        return Interview.query.filter(*where).all()
+    except Exception as e:
+        raise e
     finally:
         db.session.close()

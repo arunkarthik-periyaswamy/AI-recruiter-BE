@@ -8,8 +8,9 @@ from app.commons.custom_error import CustomError
 from app.roles import role_req, role_service
 from collections import namedtuple
 
-from app.roles.role_service import add_permission
+from app.roles.role_service import add_permission, fetch_lower_hierarchy_roles
 from app.user.user_routes import get_user_and_tenant_from_token, token_required
+from app.user.user_service import fetch_user_by_id
 
 roles_blueprint = Blueprint('roles_blueprint', __name__)
 
@@ -50,3 +51,14 @@ def add_permission_to_role(role_id, permission_id):
         logging.error(ex)
         return {"message": "unable to add permission to role"}, 500
 
+
+@roles_blueprint.route("/lower-roles", methods=['GET'])
+@token_required
+def get_lower_roles():
+    try:
+        user_id, tenant_id = get_user_and_tenant_from_token(request)
+        user = fetch_user_by_id(user_id)
+        return fetch_lower_hierarchy_roles(user)
+    except Exception as ex:
+        logging.error(ex)
+        return {"message": "unable to fetch roles"}, 500

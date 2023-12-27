@@ -17,8 +17,11 @@ class Candidate(Base):
     dsg_id = Column(Integer)
     years_of_experience = Column(Integer)
     expected_ctc = Column(Integer)
+    tenant_id = Column(UUID)
 
-    def __init__(self, c_id=None, c_name=None, phone_number=None, email=None, password=None, valid_id=None, dsg_id=None, years_of_experience=None, expected_ctc=None):
+    def __init__(self, c_id=None, c_name=None, phone_number=None, email=None, password=None,
+                 valid_id=None, dsg_id=None, years_of_experience=None, expected_ctc=None,
+                 tenant_id=None):
         self.c_id = c_id,
         self.c_name = c_name,
         self.phone_number = phone_number,
@@ -26,8 +29,9 @@ class Candidate(Base):
         self.email = email,
         self.dsg_id = dsg_id,
         self.years_of_experience = years_of_experience,
-        self.expected_ctc=expected_ctc,
-        self.password=password
+        self.expected_ctc = expected_ctc,
+        self.password = password,
+        self.tenant_id = tenant_id
 
     def __repr__(self):
         return self
@@ -44,7 +48,8 @@ class Candidate(Base):
             'valid_id': self.valid_id,
             'dsg_id': self.dsg_id,
             'years_of_experience': self.years_of_experience,
-            'expected_ctc': self.expected_ctc
+            'expected_ctc': self.expected_ctc,
+            'tenant_id': self.tenant_id
         }
 
     def toJSON(self):

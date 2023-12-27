@@ -30,8 +30,9 @@ def check_question_exist(q_id):
     return True
 
 
-def add_evaluation_from_params(c_id, q_id, interview, question_number):
-    evaluation = Evaluations(c_id=c_id, q_id=q_id, interview_id=interview.i_id, question_number=question_number)
+def add_evaluation_from_params(c_id, q_id, interview, question_number, tenant_id):
+    evaluation = Evaluations(c_id=c_id, q_id=q_id, interview_id=interview.i_id,
+                             question_number=question_number, tenant_id=tenant_id)
     db.session.add(evaluation)
     db.session.flush()
     return evaluation
@@ -195,14 +196,9 @@ def get_interviewed_candidate_evaluations(i_id):
         if evaluations:
             for evaluation in evaluations:
                 question = get_question(evaluation.q_id)
-                question_text = "---"
-                # Adding this condition since there is a dependencies between question and evaluation
-                # if questions are deleted still evaluations can be listed down
-                if question is not None:
-                    question_text = question['question']
                 result.append({'q_id': evaluation.q_id,
                                'c_id': evaluation.c_id,
-                               'question': question_text,
+                               'question': question['question'],
                                'candidate_answer': evaluation.candidate_answer,
                                'score': evaluation.score
                                })
@@ -256,8 +252,8 @@ def get_candidate_report_for_download(c_id, email, i_id):
         db.session.close()
 
 
-def get_interviews_scheduled_by_user(user_id):
-    interviews = Interview.query.filter(db.and_(Interview.created_by == user_id)).all()
+def get_interviews_scheduled_by_user(tenant_id):
+    interviews = Interview.query.filter(db.and_(Interview.tenant_id == tenant_id)).all()
     candidates = []
     for interview in interviews:
         interview_date = interview.date_of_interview
@@ -344,10 +340,10 @@ def save_interview_candidate_report(report_data, filename):
     return filename
 
 
-def get_all_candidate_status(user_id):
+def get_all_candidate_status(tenant_id):
     try:
         db.session.begin()
-        return candidate_service.get_candidate_details(user_id)
+        return candidate_service.get_candidate_details(tenant_id)
     except Exception as e:
         print(e)
         return {'message': 'error occurred',

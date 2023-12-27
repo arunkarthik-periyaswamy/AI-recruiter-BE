@@ -1,6 +1,7 @@
 import json
 
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.commons.db.db_model import Base
 
@@ -18,9 +19,10 @@ class Evaluations(Base):
     time_taken = Column(Integer)
     is_flagged = Column(Boolean)
     question_number = Column(Integer)
+    tenant_id = Column(UUID)
 
     def __init__(self, c_id=None, q_id=None, ai_answer=None, candidate_answer=None, score=None, is_clue_used=None,
-                 time_taken=None, is_flagged=None, interview_id=None, question_number=None):
+                 time_taken=None, is_flagged=None, interview_id=None, question_number=None, tenant_id=None):
         self.c_id = c_id
         self.q_id = q_id
         self.ai_answer = ai_answer
@@ -31,6 +33,7 @@ class Evaluations(Base):
         self.is_flagged = is_flagged
         self.interview_id = interview_id
         self.question_number = question_number
+        self.tenant_id = tenant_id
 
     def __repr__(self):
         return self
@@ -48,7 +51,8 @@ class Evaluations(Base):
                 'time_taken': self.time_taken,
                 'is_flagged': self.is_flagged,
                 'interview_id': self.interview_id,
-                'question_number': self.question_number
+                'question_number': self.question_number,
+                'tenant_id': self.tenant_id
                 }
 
     def toJSON(self):

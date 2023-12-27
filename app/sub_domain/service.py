@@ -34,17 +34,19 @@ def save_sub_domain(request_data, user_id):
         db.session.close()
 
 
-def fetch_sub_domain_for_domains(domain_id):
+def fetch_sub_domain_for_domain(domain_id):
     try:
         logging.info("Fetching sub-domains for given domain id")
         domain = Domain.query.filter(Domain.d_id == domain_id).first()
         if not domain:
             raise CustomError("Given domain is not valid!.", 400)
         sub_domains = SubDomain.query.filter(SubDomain.domain_id == domain_id).all()
-        return [
-            sub_domain.format()
-            for sub_domain in sub_domains
-        ]
+        return {
+            "count": len(sub_domains),
+            "sub_domains": [sub_domain.format() for sub_domain in sub_domains]
+        }
+    except CustomError as e:
+        raise e
     except Exception as ex:
         raise ex
     finally:
@@ -65,7 +67,7 @@ def validate_sub_domain(designation, domain, sub_domain):
             .join(d_alias, sd_alias.domain_id == d_alias.d_id)\
             .join(dd_alias, dd_alias.d_id == sd_alias.domain_id)\
             .join(dsg_alias, dsg_alias.dsg_id == dd_alias.dsg_id)\
-            .filter(sd_alias.name == sub_domain)\
+            .filter(sd_alias.name == sub_domain, dsg_alias.name == designation)\
             .first()
 
         if not sub_domain:

@@ -2,7 +2,7 @@ import json
 import openai
 import logging
 
-prompt = {"role": "system",
+question_prompt = {"role": "system",
           "content": """Given the following inputs 
 Industry: Name of the industry which the subject is about
 Role: The designation for which the question is suitable
@@ -42,10 +42,21 @@ The output should be a markdown code snippet formatted in the following schema, 
   }}
 ```"""}
 
+answer_prompt = [
+    {"role": "system",
+     "content": """You are an interviewee and you will be asked a question and you have to answer the question as best as you can.
+    You are being interviewed for the role of {designation}. You can also choose analogies, examples,
+    and other pedagogical techniques to make the explanations more engaging and memorable. Don't explain too long try
+    to restrict yourself to cover most of the answer in fewest possible words."""},
+    {"role": "user",
+     "content": ""}
+]
+
+
 
 def generate_qa_from_ai(question_request):
     
-    ai_prompt = prompt.copy() # Dont refer to dict as it replaces the {} in prompt above and will no longer be placeholder variables instead values
+    ai_prompt = question_prompt.copy() # Dont refer to dict as it replaces the {} in prompt above and will no longer be placeholder variables instead values
     structured_output = ""
     ai_prompt["content"] = ai_prompt["content"].format(industry=question_request.industry,
                                                                designation=question_request.designation,
@@ -55,7 +66,7 @@ def generate_qa_from_ai(question_request):
                                                                code_based=str(question_request.code_based)
                                                                )
     answer = openai.ChatCompletion.create(
-          model="gpt-3.5-turbo",
+          model="gpt-4",
           messages=[ai_prompt],
           temperature=0
     )
@@ -72,3 +83,17 @@ def generate_qa_from_ai(question_request):
       json_string = ai_reply
     #json_output = json.loads(ai_reply) if ai_reply else None
     return structured_output
+
+
+def generate_answer_from_ai(request_data):
+    ai_prompt = answer_prompt.copy()
+    ai_prompt[0]["content"] = ai_prompt[0]["content"].format(designation=request_data.designation)
+    ai_prompt[1]["content"] = request_data.question
+
+    answer = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=ai_prompt,
+        temperature=0
+    )
+
+    return {"ai_answer": answer.get("choices", [{}])[0].get("message", {}).get("content", None)}

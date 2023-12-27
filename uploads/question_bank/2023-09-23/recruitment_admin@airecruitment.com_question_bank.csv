@@ -1,3 +1,0 @@
-question,question_type,answer_type,max_answering_time,preparation_time,code_required,difficulty_index,clues,url
-what is decorator in python?,OpenEnded,NoCodeAnswer,5,30,FALSE,4,clues,https://react.dev/
-6 difficulty Visualization Matplotlib test question,Closed,CodeBased,5,30,TRUE,6,clues,https://react.dev/

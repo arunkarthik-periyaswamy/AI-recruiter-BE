@@ -38,8 +38,6 @@ class User(Base):
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
-            'password': self.password,
-            'jwt_token': self.jwt_token,
             'role_id': self.role_id
         }
 
@@ -52,7 +50,6 @@ class User(Base):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
-
 
 
 class UserDesignation(Base):

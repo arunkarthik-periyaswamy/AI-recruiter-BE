@@ -131,3 +131,25 @@ def verify_role(role_id):
         raise e
     finally:
         db.session.close()
+
+
+def get_roles(role_ids):
+    try:
+        return Role.query.filter(Role.id.in_(role_ids)).all()
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+
+
+def fetch_lower_hierarchy_roles(user):
+    try:
+        print(user.role_id)
+        print(Role.superior_roles.any(user.role_id))
+        roles = Role.query.filter(Role.superior_roles.any(user.role_id)).all()
+        results = [role.format() for role in roles]
+        return {"count": len(results), "roles": results}
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()

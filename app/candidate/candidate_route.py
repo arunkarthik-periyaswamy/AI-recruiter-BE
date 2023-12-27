@@ -8,10 +8,6 @@ from werkzeug.security import check_password_hash
 from app.candidate.candidate import Candidate
 from app.candidate.candidate_service import create_candidate, get_candidate_by_id
 from app import db
-from app.tenant.tenant_header_check import check_tenant_user
-from app.user.user_routes import token_required, get_user_and_tenant_from_token
-
-
 
 candidate_blueprint = Blueprint('candidate_blueprint', __name__)
 
@@ -84,16 +80,5 @@ def get_candidate_by_candidate_id(c_id):
         }
     else:
         return make_response('Could not find candidate', 404)
-
-# Commented for later implementation
-# @candidate_blueprint.route("/<c_id>/candidate/delete", methods=['GET'])
-# @token_required
-# @check_tenant_user
-# def delete_candidate_by_candidate_id(c_id):
-#     try:
-#         return delete_candidate(c_id)
-#     except Exception as e:
-#         db.session.rollback()
-#         raise e
 
 

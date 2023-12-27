@@ -7,7 +7,7 @@ from marshmallow import ValidationError
 
 from app.commons.custom_error import CustomError
 from app.sub_domain import sub_domain_request
-from app.sub_domain.service import save_sub_domain, fetch_sub_domain_for_domains
+from app.sub_domain.service import save_sub_domain, fetch_sub_domain_for_domain
 from app.user.user_routes import token_required, get_user_and_tenant_from_token
 
 sub_domain_blueprint = Blueprint('sub_domain_blueprint', __name__)
@@ -44,10 +44,7 @@ def get_sub_domain_by_domain(domain_id):
     try:
         if not domain_id.isdigit():
             raise CustomError("Domain id missing!.", 400)
-        sub_domains = fetch_sub_domain_for_domains(domain_id)
-        if sub_domains:
-            return sub_domains, 200
-        return jsonify({'message': 'Sub-Domain Doesnt exist for the given Domain !!'}), 404
+        return fetch_sub_domain_for_domain(domain_id), 200
     except CustomError as e:
         return {"message": 'Failed to fetch sub-domains for domains', "error": str(e.msg)}, e.status_code
     except Exception as ex:

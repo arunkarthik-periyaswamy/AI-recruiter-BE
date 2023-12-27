@@ -1,6 +1,7 @@
 import json
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from app import db
 from app.commons.db.db_model import Base
@@ -14,6 +15,7 @@ class Role(Base):
     created_by = Column(Integer)
     updated_by = Column(Integer)
     created_at = Column(DateTime, default=db.func.now(), onupdate=db.func.now())
+    superior_roles = Column(ARRAY(Integer))
 
     def __init__(self, name=None, created_by=created_by):
         self.name = name,

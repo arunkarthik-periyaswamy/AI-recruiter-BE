@@ -1,5 +1,6 @@
 from flask import jsonify
 
+from app.commons.db_constant import QUESTIONER_MANAGER, QUESTIONER
 from app.designation.designation import Designation
 from app.roles.role_service import get_role_id_by_name
 from app.tenant.tenant_model import TenantUser
@@ -24,9 +25,10 @@ def create_user(first_name, last_name, email, password, tenant, role=None):
         db.session.flush()
         add_tenant_user(tenant, user.user_id)
         db.session.commit()
+        db.session.refresh(user)
         return user
     except Exception as e:
-        return jsonify({'message': 'Exception occurred while adding user !!'}), 500
+        raise e
     finally:
         db.session.close()
 
@@ -81,6 +83,7 @@ def get_user_by_user_id(user_id):
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'email': user.email,
+                'role_id': user.role_id
             }
             return result
         else:
@@ -101,3 +104,38 @@ def get_user_list(tenant_id):
         raise e
     finally:
         db.session.close()
+
+
+def fetch_questioner_list_for_designation(dsg_id, tenant_id):
+    try:
+        return db.session.query(User) \
+            .select_from(User) \
+            .join(UserDesignation, UserDesignation.user_id == User.user_id) \
+            .join(TenantUser, TenantUser.user_id == User.user_id) \
+            .filter(UserDesignation.dsg_id == dsg_id, TenantUser.tenant_id == tenant_id).all()
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+
+
+def get_questioner_list(tenant_id):
+    try:
+        return db.session.query(User) \
+            .select_from(User) \
+            .join(TenantUser, TenantUser.user_id == User.user_id) \
+            .filter(TenantUser.tenant_id == tenant_id, User.role_id.in_([QUESTIONER_MANAGER.id, QUESTIONER.id])).all()
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+
+
+def fetch_user_by_id(user_id):
+    try:
+        return User.query.get(user_id)
+    except Exception as e:
+        raise e
+    finally:
+        db.session.close()
+

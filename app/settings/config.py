@@ -10,6 +10,7 @@ class Config:
     USER = 'admin'  # os.environ['USER']
     PASS = 'admin'  # os.environ['PASS']
     SENDGRID_API_KEY = 'XXXXXXXXX'  # os.environ['SENDGRID_API_KEY']
+    MAILTRAP_API_KEY = "d5996da91156f5b68f19a28163cc57f1"  # Temporary testing key
 
 
 class ProductionConfig(Config):

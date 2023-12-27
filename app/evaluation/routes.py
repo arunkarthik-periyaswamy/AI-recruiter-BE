@@ -34,7 +34,7 @@ def candidate_evaluation_download_report(c_id, i_id):
 @check_tenant_user
 def candidate_evaluation_status():
     user_id, tenant_id = get_user_and_tenant_from_token(request)
-    all_candidate_status = get_all_candidate_status(user_id)
+    all_candidate_status = get_all_candidate_status(tenant_id)
     return all_candidate_status, 200
 
 

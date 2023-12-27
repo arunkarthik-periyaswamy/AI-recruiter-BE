@@ -379,3 +379,29 @@ ALTER TABLE IF EXISTS public.user ADD COLUMN role_id integer,
     REFERENCES public.role (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE NO ACTION;
+
+CREATE TABLE IF NOT EXISTS public.page_component
+(
+    id SERIAL,
+    name text NOT NULL,
+    created_by integer,
+    updated_by integer,
+    created_at timestamp without time zone,
+    last_updated timestamp without time zone,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS public.role_page_component
+(
+    role_id integer,
+    page_component_id integer,
+    last_updated timestamp without time zone,
+    CONSTRAINT role_id FOREIGN KEY (role_id)
+        REFERENCES public.role (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT page_component_id FOREIGN KEY (page_component_id)
+        REFERENCES public.page_component (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);

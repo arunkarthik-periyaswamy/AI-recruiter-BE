@@ -24,7 +24,7 @@ def create_industry():
         return {"message": "unable to create industry"}, 500
 
 
-@industry_blueprint.route("/", methods=['GET'])
+@industry_blueprint.route("", methods=['GET'])
 @token_required
 def get_industries():
     try:

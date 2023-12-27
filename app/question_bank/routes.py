@@ -14,7 +14,7 @@ from collections import namedtuple
 from werkzeug.utils import secure_filename
 
 from app.question_bank.service import add_questions_from_file, get_question_list_for_designation, \
-    generate_question_and_answer
+    generate_question_and_answer, generate_answer_for_ques
 from app.tenant.tenant_header_check import check_tenant_user
 from app.user.user_routes import token_required, get_user_and_tenant_from_token
 from app.user.user_service import get_user_by_user_id
@@ -101,12 +101,11 @@ def upload_questions():
         return Response(response="File Uploaded", status=201)
 
 
-@question_blueprint.route("/", methods=['GET'])
+@question_blueprint.route("", methods=['GET'])
 @token_required
 def list_questions_for_designation():
     user_id, tenant_id = get_user_and_tenant_from_token(request)
-    if request.method == 'GET':
-        return get_question_list_for_designation(request, tenant_id)
+    return get_question_list_for_designation(request, tenant_id)
 
 
 @question_blueprint.route("/generate", methods=['POST'])
@@ -125,3 +124,24 @@ def generate_question():
     except Exception as ex:
         logging.error(ex)
         return {"message": "unable to create question"}, 500
+
+
+@question_blueprint.route("/generate-answer", methods=['POST'])
+@token_required
+def generate_answer():
+    try:
+        request_data = request.get_json()
+        logging.info("Request to generate answer. Request_data: ", request_data)
+        schema = question_req.AnswerGenerateDTO()
+        schema.load(request_data)
+        answer_generate_data = json.loads(request.get_data(), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+        return generate_answer_for_ques(answer_generate_data), 200
+    except ValidationError as err:
+        # Return a nice message if validation fails
+        return jsonify(err.messages), 400
+    except CustomError as e:
+        logging.error(e)
+        return {"message": 'Failed to generate answer', "error": str(e.msg)}, e.status_code
+    except Exception as ex:
+        logging.error(ex)
+        return {"message": "unable to generate answer"}, 500

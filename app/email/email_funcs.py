@@ -1,3 +1,4 @@
+import mailtrap
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, MailSettings, SandBoxMode
 
@@ -22,4 +23,22 @@ def send_notification(email, subject, html_content):
         print('SENDGRID INVOICE_READY_NOTIFICATION SENT HEADERS={}'.format(response.headers))
     except Exception as e:
         print('SENDGRID INVOICE_READY_NOTIFICATION EXCEPTION={}'.format(e))
+        raise e
+
+
+def send_mail(to_email, subject, html_body):
+    try:
+
+        # Todo: Currently for testing purpose this domain email is used.
+        message = mailtrap.Mail(
+            sender=mailtrap.Address(email="no-reply@dhineshkumar.space", name="AI Interviewer"),
+            to=[mailtrap.Address(email=to_email)],
+            subject=subject,
+            html=html_body
+        )
+
+        client = mailtrap.MailtrapClient(token=Config.MAILTRAP_API_KEY)
+        client.send(message)
+        return {"message": "Invite sent out successfully"}
+    except Exception as e:
         raise e
